@@ -6,7 +6,8 @@ import (
 )
 
 type Config struct {
-	DbConn string `yaml:"database_url,omitempty"`
+	DbConn       string `yaml:"database_url,omitempty"`
+	JwtSecretKey string `yaml:"jwt_secret_key"`
 }
 
 func MustConfig(path string, validator *validator.Validate) *Config {

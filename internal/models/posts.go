@@ -1,23 +1,35 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type Post struct {
-	ID      int        `db:"id"`
-	Name    string     `db:"name"`
-	Owner   string     `db:"owner_name"`
-	Created *time.Time `db:"created"`
-	Comment Comment
-	Tags    Tags
+	ID      int       `db:"id" json:"id,omitempty"`
+	Name    string    `db:"name" validate:"required" json:"name,omitempty"`
+	Message string    `db:"message" validate:"required" json:"message,omitempty"`
+	Created time.Time `db:"created" json:"created,omitempty"`
+	OwnerID int       `db:"owner_id" json:"owner_id,omitempty"`
+	*Comment
+	*Tags
 }
 
 type Comment struct {
-	ID      int        `db:"id"`
-	PostID  int        `db:"post_id"`
-	Message string     `db:"message"`
-	Created *time.Time `db:"created"`
+	ID      int       `db:"id" json:"id,omitempty"`
+	PostID  int       `db:"post_id" json:"post_id,omitempty"`
+	OwnerID int       `db:"owner_id" json:"owner_id,omitempty"`
+	Message string    `db:"message" json:"message,omitempty"`
+	Created time.Time `db:"created" json:"created,omitempty"`
 }
 
 type Tags struct {
-	Tags []string `db:"tags"`
+	Tags   string `db:"tags" json:"tags,omitempty"`
+	PostID int    `db:"post_id" json:"post_id,omitempty"`
+}
+
+func NewPost() *Post {
+	return &Post{
+		Comment: new(Comment),
+		Tags:    new(Tags),
+	}
 }

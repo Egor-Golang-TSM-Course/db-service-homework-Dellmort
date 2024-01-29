@@ -11,24 +11,33 @@ import (
 )
 
 type Server struct {
-	storage   storage.Storage
-	router    chi.Router
-	log       *slog.Logger
-	validator *validator.Validate
+	cfg          *config.Config
+	storage      storage.Storage
+	router       chi.Router
+	log          *slog.Logger
+	validator    *validator.Validate
+	TokenManager TokenManager
 }
 
-func New(storage storage.Storage, router chi.Router, log *slog.Logger, validator *validator.Validate) *Server {
+func New(cfg *config.Config,
+	storage storage.Storage,
+	router chi.Router,
+	log *slog.Logger,
+	validator *validator.Validate,
+	tokenManager TokenManager) *Server {
 	return &Server{
-		storage:   storage,
-		router:    router,
-		log:       log,
-		validator: validator,
+		cfg:          cfg,
+		storage:      storage,
+		router:       router,
+		log:          log,
+		validator:    validator,
+		TokenManager: tokenManager,
 	}
 }
 
-func (s *Server) Start(cfg *config.Config) error {
+func (s *Server) Start(tm TokenManager) error {
 	s.log.Info("server started...")
-	s.routers()
+	s.routers(tm)
 
 	return http.ListenAndServe(":8080", s.router)
 }
