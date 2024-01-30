@@ -1,11 +1,10 @@
 package server
 
 import (
-	"crypto/sha1"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"homework/internal/models"
+	"homework/internal/pkg"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,40 +12,41 @@ import (
 
 var (
 	ErrJsonUnmarshal = errors.New("json Unmarshaler error")
-	ErrincorrectData = errors.New("login or password incorrect")
+	ErrIncorrectData = errors.New("login or password incorrect")
 	ErrUndefinedUser = errors.New("user not register")
 )
 
-func generateSHA1(password string) string {
-	h := sha1.New()
-	h.Write([]byte(password))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-// TODO: add validions
 func (s *Server) registerUser() func(w http.ResponseWriter, r *http.Request) {
 	const f = "server.RegisterUser"
+	type response struct {
+		Name     string `json:"name" validate:"required,gte=4"`
+		Login    string `json:"login" validate:"required,gte=5"`
+		Password string `json:"password" validate:"required,gte=6"`
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := models.User{
-			Created: time.Now(),
-		}
-		err := json.NewDecoder(r.Body).Decode(&user)
+		var resp response
+		err := json.NewDecoder(r.Body).Decode(&resp)
 		if err != nil {
 			s.log.Error(f, slog.String("ERR", err.Error()))
 			s.error(w, http.StatusInternalServerError, ErrJsonUnmarshal)
 			return
 		}
 
-		err = s.validator.Struct(user)
+		// validate to struct
+		err = s.validator.Struct(resp)
 		if err != nil {
-			s.log.Error(f, slog.String("ERR", err.Error()))
+			s.log.Debug(f, slog.String("DEBUG", err.Error()))
 			s.error(w, http.StatusBadRequest, err)
 			return
 		}
-		user.Password = generateSHA1(user.Password)
 
+		user := models.User{
+			Name:     resp.Name,
+			Login:    resp.Login,
+			Password: pkg.GenetareSHA1(resp.Password),
+			Created:  time.Now(),
+		}
 		id, err := s.storage.CreateUser(r.Context(), &user)
 		if err != nil {
 			s.log.Error(f, slog.String("ERR", err.Error()))
@@ -81,8 +81,8 @@ func (s *Server) loginUser() func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if generateSHA1(resp.Password) != user.Password {
-			s.error(w, http.StatusNotAcceptable, ErrincorrectData)
+		if pkg.GenetareSHA1(resp.Password) != user.Password {
+			s.error(w, http.StatusNotAcceptable, ErrIncorrectData)
 			return
 		}
 
